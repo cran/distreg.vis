@@ -4,24 +4,29 @@
 \alias{preds}
 \title{Predict distributional parameters of a bamlss family with a bamlss model}
 \usage{
-preds(model, newdata)
+preds(model, newdata, what = "mean")
 }
 \arguments{
 \item{model}{A fitted bamlss model object, created with \code{\link{bamlss}}.}
 
-\item{newdata}{A data.frame with explanatory variables as columns,
-and rows with the combinations you want to do predictions for. Furthermore,
-whether or not to include the intercept has to be specified via a logical
-variable \code{intercept}.}
+\item{newdata}{A data.frame with explanatory variables as columns, and rows
+with the combinations you want to do predictions for. Furthermore, whether
+or not to include the intercept has to be specified via a logical variable
+\code{intercept}.}
+
+\item{what}{One of \code{"mean"} or \code{"samples"}. The
+default for bamlss models is "samples", while the default for gamlss models
+is "mean". This argument changes how the mean of the parameter is
+calculated. See details for details.}
 }
 \value{
-A data.frame with one column for every distributional parameter
-  and a row for every covariate combination that should be predicted.
+A data.frame with one column for every distributional parameter and a
+  row for every covariate combination that should be predicted.
 }
 \description{
-This function takes a fitted model and a dataframe with explanatory
-variables and a column for the intercept to compute predicted parameters
-for the specified distribution.
+This function takes a fitted model and a dataframe with explanatory variables
+and a column for the intercept to compute predicted parameters for the
+specified distribution.
 }
 \examples{
 # Generating data

@@ -110,7 +110,7 @@ vis <- function() {
     # Reactive model family
     fam <- reactive({
       if (!is.null(m()))
-        family(m())
+        fam_obtainer(m())
     })
 
     # Got Model and data?
@@ -420,7 +420,20 @@ vis <- function() {
 
         # Rug Plot
         infl_sidebar[[length(infl_sidebar) + 1]] <-
-          checkboxInput("infl_rug", label = "Rug Plot?", value = TRUE)
+          checkboxInput("infl_rug", label = "Rug Plot?", value = FALSE)
+
+        # If we analyze a bamlss model there is the ability to compute estimate based on samples
+        if (is.bamlss(fam())) {
+          # Samples
+          infl_sidebar[[length(infl_sidebar) + 1]] <-
+            checkboxInput("infl_samples",
+                          label = "Compute estimate based on samples?",
+                          value = FALSE)
+
+          # Uncertainty Measures
+          infl_sidebar[[length(infl_sidebar) + 1]] <-
+            checkboxInput("infl_uncertainty", label = "Uncertainty measures", value = FALSE)
+        }
 
         # Get the code
         infl_sidebar[[length(infl_sidebar) + 1]] <-
@@ -455,6 +468,21 @@ vis <- function() {
       }
     })
 
+    # Check whether samples and uncertainty measures are clicked both
+
+    observe({
+      if (!is.null(fam())) {
+        if (is.bamlss(fam())) {
+          if (!is.null(input$infl_uncertainty) && !is.null(input$infl_samples)) {
+            if (input$infl_uncertainty && !input$infl_samples) {
+              showNotification("Uncertainty measures only possible if\n estimates were computed sample-based",
+                               type = "warning", duration = 10)
+            }
+          }
+        }
+      }
+    })
+
     ## What happens when infl_pastecode button is pressed
     observeEvent(input$infl_pastecode, {
       # First line of code
@@ -473,6 +501,10 @@ vis <- function() {
         infl_c_plot[["ex_fun"]] <- input$infl_exfun
       if (input$infl_rug)
         infl_c_plot[["rug"]] <- TRUE
+      if (input$infl_samples)
+        infl_c_plot[["samples"]] <- TRUE
+      if (input$infl_samples && input$infl_uncertainty) # only when both are true we should have samples
+        infl_c_plot[["uncertainty"]] <- TRUE
       infl_c_plot <- deparse(infl_c_plot, width.cutoff = 100) # Make call into character
       infl_c_plot <- tidy_c(infl_c_plot)
 
@@ -503,7 +535,9 @@ vis <- function() {
                      pred$data,
                      palette = input$infl_pal_choices,
                      ex_fun = input$infl_exfun,
-                     rug = input$infl_rug)
+                     rug = input$infl_rug,
+                     samples = input$infl_samples,
+                     uncertainty = input$infl_uncertainty)
     })
 
   }

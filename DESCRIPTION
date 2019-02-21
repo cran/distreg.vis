@@ -2,7 +2,7 @@ Package: distreg.vis
 Type: Package
 Title: Framework for the Visualization of Distributional Regression
         Models
-Version: 1.0.1
+Version: 1.1.0
 Authors@R: c(person("Stanislaus", "Stadlmann", email = "stadlmann@uni-goettingen.de", role = c("cre", "aut"), comment = c(ORCID = "0000-0001-6542-6342")))
 Maintainer: Stanislaus Stadlmann <stadlmann@uni-goettingen.de>
 Depends: R (>= 3.3.0)
@@ -17,10 +17,10 @@ License: GPL-3
 LazyData: TRUE
 URL: https://github.com/Stan125/distreg.vis
 BugReports: https://github.com/Stan125/distreg.vis/issues
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 NeedsCompilation: no
-Packaged: 2018-10-22 08:43:00 UTC; stani
+Packaged: 2019-02-21 08:38:02 UTC; stani
 Author: Stanislaus Stadlmann [cre, aut]
     (<https://orcid.org/0000-0001-6542-6342>)
 Repository: CRAN
-Date/Publication: 2018-10-30 15:50:17 UTC
+Date/Publication: 2019-02-21 10:20:02 UTC

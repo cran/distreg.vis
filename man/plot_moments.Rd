@@ -5,7 +5,7 @@
 \title{Plot function: Display the influence of a covariate}
 \usage{
 plot_moments(model, int_var, pred_data, palette = "default",
-  ex_fun = NULL, rug = FALSE)
+  rug = FALSE, samples = FALSE, uncertainty = FALSE, ex_fun = NULL)
 }
 \arguments{
 \item{model}{A fitted model on which the plots are based.}
@@ -19,11 +19,19 @@ later processing.}
 
 \item{palette}{See \code{\link{plot_dist}}}
 
+\item{rug}{Should the resulting plot be a rug plot?}
+
+\item{samples}{If the provided model is a bamlss model, should the moment
+values be "correctly" calculated, using the transformed samples? See
+details for details.}
+
+\item{uncertainty}{If \code{TRUE}, displays uncertainty measures about the
+covariate influences. Can only be \code{TRUE} if samples is also
+\code{TRUE}.}
+
 \item{ex_fun}{An external function \code{function(par) {...}} which
 calculates a measure, which dependency from a certain variable is of
 interest.}
-
-\item{rug}{Should the resulting plot be a rug plot?}
 }
 \description{
 This function takes a dataframe of predictions with one row per prediction
@@ -39,7 +47,18 @@ dat <- model_fam_data(fam_name = "LOGNO")
 model <- gamlss(LOGNO ~ ps(norm2) + binomial1,
                 ~ ps(norm2) + binomial1,
                 data = dat, family = "LOGNO")
-ndata <- dat[sample(seq_len(nrow(dat)), 5), c("norm2", "binomial1")]
+ndata <- dat[1:5, c("norm2", "binomial1")]
+
+# Normal plot
 plot_moments(model, int_var = "norm2", pred_data = ndata)
+
+# Rug Plot
 plot_moments(model, int_var = "norm2", pred_data = ndata, rug = TRUE)
+
+# Using an external function
+ineq <- function(par) {
+  2 * pnorm((par[["sigma"]] / 2) * sqrt(2)) - 1
+}
+plot_moments(model, int_var = "norm2", pred_data = ndata, ex_fun = "ineq")
+
 }
