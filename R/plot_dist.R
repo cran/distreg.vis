@@ -1,4 +1,4 @@
-#' Plot predicted bamlss distribution families with ggplot2
+#' Plot predicted distributional regression models
 #'
 #' This function plots the parameters of a predicted distribution (e.g. obtained
 #' through \code{\link{preds}}) with ggplot2. You can use all implemented
@@ -11,10 +11,7 @@
 #' @param palette The colour palette used for colouring the plot. You can use
 #'   any of the ones supplied in \code{\link[ggplot2]{scale_fill_brewer}} though I
 #'   suggest you use one of the qualitative ones: Accent, Dark2, etc. Since 0.5.0
-#'   \code{"viridis"} is included, to account for colour blindness. If you want to do
-#'   3D plots, the accepted palettes are one of: \code{"default"}(viridis),
-#'   \code{"Blues"}, \code{"Greens"}, \code{"OrRd"}, \code{"Purples"},
-#'   \code{"Spectral"}, \code{"RdYlBu"}, \code{"RdYlGn"}.
+#'   \code{"viridis"} is included, to account for colour blindness.
 #' @param type Do you want the probability distribution function ("pdf") or
 #'   the cumulative distribution function ("cdf")?
 #' @param rug If TRUE, creates a rug plot
@@ -33,7 +30,7 @@
 #' plot_dist(beta_model, param_preds, rug = TRUE)
 #' @export
 
-plot_dist <- function(model, pred_params, palette = "default", type = "pdf",
+plot_dist <- function(model, pred_params, palette = "viridis", type = "pdf",
                       rug = FALSE) {
 
   # Check whether the function is even applied to the right classes
@@ -53,7 +50,11 @@ plot_dist <- function(model, pred_params, palette = "default", type = "pdf",
   if (!is.implemented(fam_name))
     stop("Family not implemented")
 
-  # Get correct pdf and cdf functions - pdf_cdf_getter should also check whether a cdf is even available
+  # Check here whether pred_params is in correct form
+  if (!is(pred_params, "data.frame"))
+    stop("Argument pred_params has to be in data.frame form")
+
+  # Get correct pdf and cdf functions - fam_fun_getter should also check whether a cdf is even available
   if (is.continuous(fam_name))
     funs_list <- list(pdf = fam_fun_getter(fam_name, "d"),
                       cdf = fam_fun_getter(fam_name, "p"))
@@ -201,7 +202,7 @@ pdfcdf_discrete <- function(pred_params, palette, fam_name, type, model, lims, d
     # Assemble plot
     ground <- ggplot(pred_df, aes_string("xvals", "value", col = "rownames")) +
       geom_step(linetype = 2) +
-      labs(x = "x", y = "F(x)") +
+      labs(x = "y", y = "F(y)") +
       ggtitle("Predicted distribution(s)")
 
     # Classic theme

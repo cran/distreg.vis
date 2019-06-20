@@ -15,7 +15,10 @@
 #'   dimension of the uniform distribution should be transformed to.
 #' @import bamlss
 #' @import gamlss.dist
-#' @importFrom stats rmultinom qbeta qbinom qgamma runif qpois qnorm
+#' @importFrom stats rmultinom qbeta qbinom qgamma runif qpois qnorm qlnorm
+#' @examples
+#' # Beta distributed random values
+#' model_fam_data(nrow = 500, fam_name = "BE")
 #' @return A data.frame with columns for differently distributed data.
 #' @export
 
@@ -82,6 +85,11 @@ model_fam_data <- function(nrow = 500, seed = 1408, fam_name = "NO") {
       tfvec <- sapply(u_data$v1, FUN = glogis_bamlss()$q,
                       par = list(mu = 1, sigma = 1, alpha = 1))
 
+    if (fam_name == "lognormal")
+      tfvec <- qlnorm(u_data$v1)
+
+    if (!exists("tfvec"))
+      stop("Family not yet implemented")
   }
 
   ### GAMLSS Families

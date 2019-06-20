@@ -4,7 +4,7 @@
 \alias{plot_moments}
 \title{Plot function: Display the influence of a covariate}
 \usage{
-plot_moments(model, int_var, pred_data, palette = "default",
+plot_moments(model, int_var, pred_data, palette = "viridis",
   rug = FALSE, samples = FALSE, uncertainty = FALSE, ex_fun = NULL)
 }
 \arguments{
@@ -30,8 +30,8 @@ covariate influences. Can only be \code{TRUE} if samples is also
 \code{TRUE}.}
 
 \item{ex_fun}{An external function \code{function(par) {...}} which
-calculates a measure, which dependency from a certain variable is of
-interest.}
+calculates a measure, whose dependency from a certain variable is of
+interest. Has to be specified in character form.}
 }
 \description{
 This function takes a dataframe of predictions with one row per prediction

@@ -14,8 +14,8 @@
 #' @param model A fitted model on which the plots are based.
 #' @param palette See \code{\link{plot_dist}}
 #' @param ex_fun An external function \code{function(par) {...}} which
-#'   calculates a measure, which dependency from a certain variable is of
-#'   interest.
+#'   calculates a measure, whose dependency from a certain variable is of
+#'   interest. Has to be specified in character form.
 #' @param rug Should the resulting plot be a rug plot?
 #' @param samples If the provided model is a bamlss model, should the moment
 #'   values be "correctly" calculated, using the transformed samples? See
@@ -48,7 +48,7 @@
 #'
 #' @export
 
-plot_moments <- function(model, int_var, pred_data, palette = "default",
+plot_moments <- function(model, int_var, pred_data, palette = "viridis",
                          rug = FALSE, samples = FALSE, uncertainty = FALSE,
                          ex_fun = NULL) {
 
@@ -141,6 +141,12 @@ plot_moments <- function(model, int_var, pred_data, palette = "default",
     preds_reshaped_mean$upperlim <- preds_reshaped_upperlim$value
   }
 
+  # Rename factor of moments
+  preds_reshaped_mean$moment <- factor(preds_reshaped_mean$moment,
+                                       levels = c("Expected_Value",
+                                                  "Variance",
+                                                  ex_fun))
+
   # Now make plot
   ground <- ggplot(preds_reshaped_mean,
                    aes_string(x = int_var, y = "value", col = "prediction")) +
@@ -170,8 +176,9 @@ plot_moments <- function(model, int_var, pred_data, palette = "default",
     if (samples && uncertainty)
       plot <- plot + geom_ribbon(data = preds_reshaped_mean,
                                  aes_string(ymin = "lowerlim",
-                                            ymax = "upperlim"),
-                                 alpha = 0.6)
+                                            ymax = "upperlim",
+                                            fill = "prediction"),
+                                 alpha = 0.15, linetype = 2, col = NA)
 
   } else if (coltype == "cat") {
     plot <- ground +
