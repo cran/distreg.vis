@@ -139,22 +139,11 @@ disc_trans <- function(pred_params, fam_name, type, model, lims) {
   }
 }
 
-#' Internal: Get colour palettes for 3D plots
-#'
-#' @importFrom RColorBrewer brewer.pal
-#' @keywords internal
-palette_getter <- function(name = "default") {
-  if (name == "default")
-    return(NULL)
-  if (any(name == c("Blues", "Greens", "OrRd", "Purples")))
-    return(brewer.pal(9, name)[5:9]) # omit white colours
-  if (any(name == c("Spectral", "RdYlBu", "RdYlGn")))
-    return(brewer.pal(9, name))
-}
 #' Internal: Family obtainer
 #'
 #' Gets the right family (in characters) from a given model
 #' @keywords internal
+#' @importFrom methods is
 #' @examples
 #' # Generating data
 #' data_fam <- model_fam_data(fam_name = "BE")
@@ -162,20 +151,25 @@ palette_getter <- function(name = "default") {
 #' library("gamlss")
 #' beta_model <- gamlss(BE ~ norm2 + binomial1,
 #'   data = data_fam, family = BE())
-#' fam_obtainer(model = beta_model)
-#' @export
+#' distreg.vis:::fam_obtainer(model = beta_model)
 fam_obtainer <- function(model) {
+
   # Check whether model is gamlss or bamlss
-  if (!any(class(model) %in% c("gamlss", "bamlss")))
-    stop("Cannot deal with model class if not bamlss or gamlss")
+  if (!distreg_checker(model))
+    stop("Unsupported model class provided. \n
+         Check ?distreg_checker for supported model classes")
 
   # gamlss families
-  if (any(class(model) == "gamlss"))
+  if (is(model, "gamlss"))
     fam <- model$family[1]
 
   # bamlss families
-  if (any(class(model) == "bamlss"))
+  if (is(model, "bamlss"))
     fam <- model$family$family
+
+  # betareg
+  if (is(model, "betareg") | is(model, "betatree"))
+    fam <- "betareg"
 
   # Return it
   return(fam)

@@ -7,11 +7,31 @@
 model_data(model, dep = FALSE, varname = NULL)
 }
 \arguments{
-\item{model}{A gamlss or bamlss object}
+\item{model}{A gamlss or bamlss object.}
 
-\item{dep}{If TRUE, then only the dependent variable is returned}
+\item{dep}{If TRUE, then only the dependent variable is returned.}
+
+\item{varname}{Variable name in character form that should be returned. If
+this is specified, only the desired variable is returned.}
+}
+\value{
+A data.frame object if dep or varname is not specified, otherwise a
+  vector.
 }
 \description{
-Get the data from the models
+Get the data with which the distributional regression model of interest was
+estimated (see \link{distreg_checker} for a list of supported object
+classes). By default, only explanatory variables are returned.
 }
-\keyword{internal}
+\examples{
+library("betareg")
+
+# Get some data
+beta_dat <- model_fam_data(fam_name = "betareg")
+
+# Estimate model
+betamod <- betareg(betareg ~ ., data = beta_dat)
+
+# Get data
+model_data(betamod)
+}

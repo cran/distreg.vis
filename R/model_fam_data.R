@@ -1,4 +1,4 @@
-#' Create a dataset to fit models with all possible families in bamlss
+#' Create a dataset to fit models with all possible families in distreg packages
 #'
 #' @details This function creates a 3-dimensional uniform distribution (with
 #'   support from 0 to 1) which has a cross-correlation of 0.5. Then the first
@@ -15,6 +15,7 @@
 #'   dimension of the uniform distribution should be transformed to.
 #' @import bamlss
 #' @import gamlss.dist
+#' @importFrom betareg betareg
 #' @importFrom stats rmultinom qbeta qbinom qgamma runif qpois qnorm qlnorm
 #' @examples
 #' # Beta distributed random values
@@ -101,6 +102,11 @@ model_fam_data <- function(nrow = 500, seed = 1408, fam_name = "NO") {
       return(do.call(get(force(q_raw_name)),
                      args = list(p = p)))
     tfvec <- sapply(u_data$v1, FUN = qfun) # use apply here because I'm not sure if all q functions are vectorized
+  }
+
+  ### Betareg Family
+  if (is.betareg(fam_name)) {
+    tfvec <- qbeta(u_data$v1, 2, 5)
   }
 
   ## Piece everything together

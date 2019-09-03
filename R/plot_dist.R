@@ -1,41 +1,103 @@
 #' Plot predicted distributional regression models
 #'
 #' This function plots the parameters of a predicted distribution (e.g. obtained
-#' through \code{\link{preds}}) with ggplot2. You can use all implemented
-#' families in bamlss except the cox family.
+#' through \code{\link{preds}}) with ggplot2. You can use all supported
+#' distributional regression model classes (check details of
+#' \link{distreg_checker}) as well as all supported distributional families
+#' (available at \link{dists}).
 #'
-#' @param model A fitted bamlss object.
+#' @details To get a feel for the predicted distributions and their differences,
+#'   it is best to visualize them. In combination with the obtained parameters
+#'   from \link{preds}, the function \code{plot_dist()} looks for the necessary
+#'   distribution functions (probability density function or cumulative
+#'   distribution function) from the respective packages and then displays them
+#'   graphically.
+#'
+#'   After \code{plot_dist()} has received all necessary arguments, it executes
+#'   validity checks to ensure the argument's correct specification. This
+#'   includes controlling for the correct \code{model} class, checking whether
+#'   the distributional family can be used safely and whether cdf or pdf
+#'   functions for the modeled distribution are present and ready to be
+#'   graphically displayed. If this is the case, the internal
+#'   \link{fam_fun_getter} is used to create a list with two functions pointing
+#'   to the correct pdf and cdf functions in either the \link{gamlss} or
+#'   \link{bamlss} namespace. The functions for \link{betareg} are stored in
+#'   \link{distreg.vis}.
+#'
+#'   Following a successful calculation of the plot limits, the graph itself can
+#'   be created. Internally, \link{distreg.vis} divides between continuous,
+#'   discrete and categorical distributions. Continuous distributions are
+#'   displayed as filled line plots, while discrete and categorical
+#'   distributions take bar graph shapes.
+#'
+#'   For plotting, \link{distreg.vis} relies on the \link{ggplot2} package
+#'   (Wickham 2016). After an empty graph is constructed, the previously
+#'   obtained cdf or pdf functions are evaluated for each predicted parameter
+#'   combination and all values inside the calculated plot limits.
+#'
+#' @references Wickham H (2016). ggplot2: Elegant Graphics for Data Analysis.
+#'   Springer-Verlag New York. ISBN 978-3-319-24277-4.
+#'   \url{https://ggplot2.tidyverse.org}.
+#'
+#' @param model A fitted distributional regression model object. Check
+#'   \link{distreg_checker} to see which classes are supported.
 #' @param pred_params A data.frame with rows for every model prediction and
-#'   columns for every predicted parameter of the distribution. Is easily obtained
-#'   with the \code{distreg.vis} function \code{\link{preds}}.
+#'   columns for every predicted parameter of the distribution. Is easily
+#'   obtained with the \code{distreg.vis} function \code{\link{preds}}.
 #' @param palette The colour palette used for colouring the plot. You can use
-#'   any of the ones supplied in \code{\link[ggplot2]{scale_fill_brewer}} though I
-#'   suggest you use one of the qualitative ones: Accent, Dark2, etc. Since 0.5.0
-#'   \code{"viridis"} is included, to account for colour blindness.
-#' @param type Do you want the probability distribution function ("pdf") or
-#'   the cumulative distribution function ("cdf")?
+#'   any of the ones supplied in \code{\link[ggplot2]{scale_fill_brewer}} though
+#'   I suggest you use one of the qualitative ones: Accent, Dark2, etc. Since
+#'   0.5.0 \code{"viridis"} is included, to account for colour blindness.
+#' @param type Do you want the probability distribution function ("pdf") or the
+#'   cumulative distribution function ("cdf")?
 #' @param rug If TRUE, creates a rug plot
+#' @param vary_by Variable name in character form over which to vary the
+#'   mean/reference values of explanatory variables. It is passed to
+#'   \link{set_mean}. See that documentation for further details.
+#' @param newdata A data.frame object being passed onto \link{preds}. You can do
+#'   this if you don't want to specify the argument \code{pred_data} directly.
+#'   If you specify \code{newdata}, then \code{preds(model, newdata = newdata)}
+#'   is going to be executed to be used as \code{pred_data}.
 #' @return A ggplot2 object.
 #' @examples
 #' # Generating data
 #' data_fam <- model_fam_data(fam_name = "BE")
+#'
 #' # Fit model
 #' library("gamlss")
 #' beta_model <- gamlss(BE ~ norm2 + binomial1,
 #'   data = data_fam, family = BE())
-#' # Get 3 predictions
-#' pred_df <- data_fam[sample(1:nrow(data_fam), 3), c("norm2", "binomial1")]
-#' param_preds <- preds(beta_model, pred_df)
+#'
+#' # Obtains all explanatory variables and set them to the mean, varying by binomial1
+#' # (do this if you do not want to specify ndata of preds by yourself)
+#' ndata <- set_mean(model_data(beta_model), vary_by = "binomial1")
+#'
+#' # Obtain predicted parameters
+#' param_preds <- preds(beta_model, newdata = ndata)
+#'
 #' # Create pdf, cdf plots
 #' plot_dist(beta_model, param_preds, rug = TRUE)
+#' plot_dist(beta_model, param_preds, type = "cdf")
+#' plot_dist(beta_model, param_preds, palette = 'default')
+#'
+#' # You can also let plot_dist do the step of predicting parameters of the mean explanatory variables:
+#' plot_dist(beta_model, pred_params = NULL, vary_by = 'binomial1')
 #' @export
 
-plot_dist <- function(model, pred_params, palette = "viridis", type = "pdf",
-                      rug = FALSE) {
+plot_dist <- function(model, pred_params = NULL, palette = "viridis",
+                      type = "pdf", rug = FALSE, vary_by = NULL,
+                      newdata = NULL) {
 
   # Check whether the function is even applied to the right classes
-  if (!any(class(model) %in% c("bamlss", "gamlss")))
-    stop("This tool only works for bamlss/gamlss classes")
+  if (!distreg_checker(model))
+    stop("This tool only works for model certain classes. \n Execute ?distreg_checker to find out which ones are currently supported")
+
+  # Compute mean values of expl variables if no pred_params is provided
+  if (is.null(pred_params) && is.null(newdata))
+    pred_params <- preds(model, vary_by = vary_by)
+
+  if (is.null(pred_params) && !is.null(newdata))
+    pred_params <- preds(model, newdata = newdata, vary_by = vary_by)
 
   # Get right family
   fam_name <- fam_obtainer(model)
@@ -76,7 +138,6 @@ plot_dist <- function(model, pred_params, palette = "viridis", type = "pdf",
 #'
 #' Returns a plot
 #' @import ggplot2
-#' @importFrom viridis scale_fill_viridis scale_colour_viridis
 #' @keywords internal
 
 pdfcdf_continuous <- function(lims, funs, type, p_m, palette, depvar) {
@@ -116,8 +177,8 @@ pdfcdf_continuous <- function(lims, funs, type, p_m, palette, depvar) {
   # Colour Palettes - if not default or viridis
   if (palette == "viridis") {
     ground <- ground +
-      scale_fill_viridis(discrete = TRUE) +
-      scale_colour_viridis(discrete = TRUE)
+      scale_fill_viridis_d() +
+      scale_colour_viridis_d()
   } else if (palette != "default") {
     ground <- ground +
       scale_fill_brewer(palette = palette) +
@@ -149,7 +210,6 @@ pdfcdf_continuous <- function(lims, funs, type, p_m, palette, depvar) {
 #'
 #' Returns a plot
 #' @import ggplot2
-#' @importFrom viridis scale_fill_viridis scale_colour_viridis
 #' @keywords internal
 
 pdfcdf_discrete <- function(pred_params, palette, fam_name, type, model, lims, depvar) {
@@ -170,8 +230,8 @@ pdfcdf_discrete <- function(pred_params, palette, fam_name, type, model, lims, d
     # Palettes
     if (palette == "viridis") {
       ground <- ground +
-        scale_fill_viridis(discrete = TRUE) +
-        scale_colour_viridis(discrete = TRUE)
+        scale_fill_viridis_d() +
+        scale_colour_viridis_d()
     } else if (palette != "default") {
       ground <- ground +
         scale_fill_brewer(palette = palette) +
@@ -211,8 +271,8 @@ pdfcdf_discrete <- function(pred_params, palette, fam_name, type, model, lims, d
     # Palette
     if (palette == "viridis") {
       ground <- ground +
-        scale_fill_viridis(discrete = TRUE) +
-        scale_colour_viridis(discrete = TRUE)
+        scale_fill_viridis_d() +
+        scale_colour_viridis_d()
     } else if (palette != "default") {
       ground <- ground +
         scale_fill_brewer(palette = palette) +

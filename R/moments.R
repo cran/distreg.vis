@@ -1,7 +1,36 @@
-#' Return expected first two moments of a distribution, given the predicted
-#' parameters
+#' Compute distributional moments from the parameters
 #'
-#' This is basically a wrapper for pred.bamlss and pred.gamlss with the added ability to compute special figures that are functions of parameters as well
+#' This function takes (predicted) parameters of a response distribution and
+#' calculates the corresponding distributional moments from it. Furthermore, you
+#' can specify own functions that calculate measures depending on distributional
+#' parameters.
+#'
+#' With the exception of \link{betareg}, the distributional families behind the
+#' estimation of the distributional regression models are represented by own
+#' objects, e.g. \link[gamlss.dist]{GA} or \link[bamlss]{lognormal_bamlss}. We
+#' worked together with both the authors of \link{gamlss} and \link{bamlss} such
+#' that the functions to compute the moments from the parameters of the
+#' underlying distribution is already implemented in the family functon itself.
+#' As an example, try out \code{gamlss.dist::BE()$mean}, which shows one
+#' example. The function \code{moments()} utilizes this fact and ensures that
+#' the outcome is always in the right format: Two columns named `Expected_Value`
+#' and `Variance` detailing the first two moments. One exception appears when an
+#' external function is specified, at which point there are three columns.
+#'
+#' Each row details one `scenario` meaning one covariate combination for which
+#' to predict the moments. \code{moments()} is heavily used in
+#' \link{plot_moments}, where moments are calculated over the entire range of
+#' one variable.
+#'
+#' If target distribution stems from a \link{bamlss} model, \code{moments()} can
+#' also utilize the samples from the \link{preds} function to transform them.
+#' This is important for correct estimates, as just taking the mean of the
+#' samples and then using those means to estimate the moments can lead to
+#' inaccurate results. \code{moments()} knows when samples of predicted
+#' parameters were specified in the \code{par} argument, and then transforms the
+#' samples to the moments, before taking averages. Only through this procedure
+#' we even get credible intervals for the expected moments (see "upperlimit" and
+#' "lowerlimit" as possible outcomes of argument \code{what}).
 #'
 #' @importFrom stats pnorm dnorm quantile
 #' @param par Parameters of the modeled distribution in a data.frame form. Can
@@ -15,16 +44,49 @@
 #'   parameter samples is calculated. 2.5% and 97.5% quantiles are calculated
 #'   for \code{lowerlimit} and \code{upperlimit}, respectively.
 #' @param ex_fun An external function \code{function(par) {...}} which
-#'   calculates a measure, which dependency from a certain variable is of
-#'   interest.
+#'   calculates a measure, whose dependency from a certain variable is of
+#'   special interest.
+#' @examples
+#'
+#' # Get some artificial data
+#' gamma_data <- model_fam_data(fam_name = "gamma")
+#'
+#' # Estimate model
+#' library("bamlss")
+#' model <- bamlss(list(gamma ~ norm2 + binomial1,
+#'                      sigma ~ norm2 + binomial1),
+#'                      data = gamma_data,
+#'                      family = gamma_bamlss())
+#'
+#' # Get some predicted parameters in sample and without sample form
+#' pred_params <- preds(model, vary_by = "binomial1")
+#' pred_params_samples <- preds(model, vary_by = "binomial1", what = "samples")
+#'
+#' # Now calculate moments - with samples more correct estimates come out
+#' moments(pred_params, fam_name = "gamma", what = "mean")
+#' moments(pred_params_samples, fam_name = "gamma", what = "mean")
+#'
+#' # Now with specifying an external function
+#' my_serious_fun <- function(par) {
+#'   return(par[["mu"]] + 3*par[["sigma"]])
+#' }
+#' moments(pred_params_samples,
+#'         what = "mean",
+#'         fam_name = "gamma",
+#'         ex_fun = "my_serious_fun")
+#'
 #' @import bamlss
 #' @export
 
 moments <- function(par, fam_name, what = "mean", ex_fun = NULL) {
 
+  # If ex_fun is not specified in character form please do so
+  if (!is.null(ex_fun) & !is.character(ex_fun))
+    stop("Please specify ex_fun in character form.")
+
   # Stop if neither gamlss nor bamlss
-  if (!is.gamlss(fam_name) && !is.bamlss(fam_name))
-    stop("This function only works for bamlss/gamlss models")
+  if (!is.distreg.fam(fam_name))
+    stop("This function only works for selected distributional family models.")
 
   # This checks whether we have samples (list format) or not (data.frame format)
   if (is.list(par) && !is.data.frame(par))
@@ -32,7 +94,7 @@ moments <- function(par, fam_name, what = "mean", ex_fun = NULL) {
   else if (is.data.frame(par))
     samples <- FALSE
   else
-    stop("par has to be either a data.frame or a list")
+    stop("par has to be either a data.frame or a list.")
 
   # What to do if ex_fun is an empty string - this is for easier shiny app handling
   if (!is.null(ex_fun)) {
@@ -209,6 +271,40 @@ moments <- function(par, fam_name, what = "mean", ex_fun = NULL) {
         moms <- do.call("rbind", args = comp_res)
       }
     }
+  }
+
+  # betareg moments
+  if (is.betareg(fam_name)) {
+
+    # Error catcher
+    if (what != "mean")
+      stop("In betareg models only option for argument 'what' is 'mean'.")
+
+    # If we didnt specify external function
+    if (!funworks) {
+      moms_raw <- apply(par, 1, FUN = function(x) {
+        ex <- x[["mu"]]
+        vx <- x[["mu"]] * (1 - x[["mu"]]) / (1 + x[["phi"]])
+        return_vec <- c(Expected_Value = ex, Variance = vx)
+        return(return_vec)
+      })
+    }
+
+    # If we did specify external function
+    if (funworks) {
+      moms_raw <- apply(par, 1, FUN = function(x) {
+        ex <- x[["mu"]]
+        vx <- x[["mu"]] * (1 - x[["mu"]]) / (1 + x[["phi"]])
+        ex_fun_vals <- fun(as.list(x))
+        return_vec <- c(Expected_Value = ex,
+                        Variance = vx,
+                        ex_fun = ex_fun_vals)
+        names(return_vec)[names(return_vec) == "ex_fun"] <- ex_fun
+      })
+    }
+
+    # Make into nice format
+    moms <- as.data.frame(t(moms_raw), row.names = rnames) # lots of reshaping here... no me gusta
   }
 
   if (exists("moms"))

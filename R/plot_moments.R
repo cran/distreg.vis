@@ -5,17 +5,45 @@
 #' held constant while one specific variable is varied over it's whole range
 #' (min-max). Then, the constant variables with the varied interest variables
 #' are predicted and plotted against the expected value and the variance of the
-#' underlying distribution
+#' underlying distribution.
+#'
+#' The target of this function is to display the influence of a selected effect
+#' on the predicted moments of the modeled distribution. The motivation for
+#' computing influences on the moments of a distribution is its
+#' interpretability: In most cases, the parameters of a distribution do not
+#' equate the moments and as such are only indirectly location, scale or shape
+#' properties, making the computed effects hard to understand.
+#'
+#' Navigating through the disarray of link functions, non-parametric effects and
+#' transformations to moments, \code{plot_moments()} supports a wide range of
+#' target distributions. See \link{dists} for details.
+#'
+#' Whether a distribution is supported or not depends on whether the underlying
+#' \code{R} object possesses functions to calculate the moments of the
+#' distribution from the predicted parameters. To achieve this for as many
+#' distributional families as possible, we worked together with both the authors
+#' of \link{gamlss} (Rigby and Stasinopoulos 2005) and \link{bamlss} (Umlauf et
+#' al. 2018) and implemented the moment functions for almost all available
+#' distributions in the respective packages. The \link{betareg} family was
+#' implemented in \link{distreg.vis} as well.
+#' @references Rigby RA, Stasinopoulos DM (2005). "Generalized Additive Models
+#'   for Location, Scale and Shape." Journal of the Royal Statistical Society C,
+#'   54(3), 507-554.
+#'
+#'   Umlauf, N, Klein N, Zeileis A (2018). "BAMLSS: Bayesian
+#'   Additive Models for Location, Scale and Shape (and Beyond)." Journal of
+#'   Computational and Graphical Statistics, 27(3), 612-627.
 #' @param int_var The variable for which influences of the moments shall be
 #'   graphically displayed. Has to be in character form.
 #' @param pred_data Combinations of covariate data, sometimes also known as
 #'   "newdata", including the variable of interest, which will be ignored in
 #'   later processing.
 #' @param model A fitted model on which the plots are based.
-#' @param palette See \code{\link{plot_dist}}
+#' @param palette See \code{\link{plot_dist}}.
 #' @param ex_fun An external function \code{function(par) {...}} which
 #'   calculates a measure, whose dependency from a certain variable is of
-#'   interest. Has to be specified in character form.
+#'   interest. Has to be specified in character form. See examples for an
+#'   example.
 #' @param rug Should the resulting plot be a rug plot?
 #' @param samples If the provided model is a bamlss model, should the moment
 #'   values be "correctly" calculated, using the transformed samples? See
@@ -23,34 +51,53 @@
 #' @param uncertainty If \code{TRUE}, displays uncertainty measures about the
 #'   covariate influences. Can only be \code{TRUE} if samples is also
 #'   \code{TRUE}.
+#' @param vary_by Variable name in character form over which to vary the
+#'   mean/reference values of explanatory variables. It is passed to
+#'   \link{set_mean}. See that documentation for further details.
 #' @importFrom magrittr %>% extract inset set_colnames set_rownames
-#' @importFrom viridis scale_fill_viridis scale_colour_viridis
 #' @import ggplot2
 #' @examples
-#' library("gamlss")
+#'
+#' # Generating some data
 #' dat <- model_fam_data(fam_name = "LOGNO")
+#'
+#' # Estimating the model
+#' library("gamlss")
 #' model <- gamlss(LOGNO ~ ps(norm2) + binomial1,
 #'                 ~ ps(norm2) + binomial1,
 #'                 data = dat, family = "LOGNO")
-#' ndata <- dat[1:5, c("norm2", "binomial1")]
 #'
-#' # Normal plot
-#' plot_moments(model, int_var = "norm2", pred_data = ndata)
+#' # Get newdata by either specifying an own data.frame, or using set_mean()
+#' # for obtaining mean vals of explanatory variables
+#' ndata_user <- dat[1:5, c("norm2", "binomial1")]
+#' ndata_auto <- set_mean(model_data(model))
+#'
+#' # Influence graphs
+#' plot_moments(model, int_var = "norm2", pred_data = ndata_user) # cont. var
+#' plot_moments(model, int_var = "binomial1", pred_data = ndata_user) # discrete var
+#' plot_moments(model, int_var = "norm2", pred_data = ndata_auto) # with new ndata
+#'
+#' # If pred_data argument is omitted plot_moments uses mean explanatory
+#' # variables for prediction (using set_mean)
+#' plot_moments(model, int_var = "norm2")
 #'
 #' # Rug Plot
-#' plot_moments(model, int_var = "norm2", pred_data = ndata, rug = TRUE)
+#' plot_moments(model, int_var = "norm2", rug = TRUE)
+#'
+#' # Different colour palette
+#' plot_moments(model, int_var = "binomial1", palette = "Dark2")
 #'
 #' # Using an external function
 #' ineq <- function(par) {
 #'   2 * pnorm((par[["sigma"]] / 2) * sqrt(2)) - 1
 #' }
-#' plot_moments(model, int_var = "norm2", pred_data = ndata, ex_fun = "ineq")
+#' plot_moments(model, int_var = "norm2", pred_data = ndata_user, ex_fun = "ineq")
 #'
 #' @export
 
-plot_moments <- function(model, int_var, pred_data, palette = "viridis",
+plot_moments <- function(model, int_var, pred_data = NULL,
                          rug = FALSE, samples = FALSE, uncertainty = FALSE,
-                         ex_fun = NULL) {
+                         ex_fun = NULL, palette = "viridis", vary_by = NULL) {
 
   # Are the moments even implemented?
   if (!has.moments(fam_obtainer(model)))
@@ -72,6 +119,11 @@ plot_moments <- function(model, int_var, pred_data, palette = "viridis",
   } else {
     coltype <- "cat" # categorical
   }
+
+  ## Set the original variables to their mean/reference category ##
+  ## if pred_data is not provided ##
+  if (is.null(pred_data))
+    pred_data <- set_mean(model_data(model), vary_by = vary_by)
 
   # Make a range of the variable
   if (coltype == "num") {
@@ -159,8 +211,8 @@ plot_moments <- function(model, int_var, pred_data, palette = "viridis",
   # Palettes
   if (palette == "viridis") {
     ground <- ground +
-      scale_fill_viridis(discrete = TRUE) +
-      scale_colour_viridis(discrete = TRUE)
+      scale_fill_viridis_d() +
+      scale_colour_viridis_d()
   } else if (palette != "default") {
     ground <- ground +
       scale_fill_brewer(palette = palette) +
@@ -223,59 +275,64 @@ plot_moments <- function(model, int_var, pred_data, palette = "viridis",
 #'   multinomial family
 #'
 #' @import ggplot2
+#' @importFrom stats model.frame
 #' @importFrom magrittr %>% inset extract set_rownames set_colnames
-#' @importFrom viridis scale_fill_viridis scale_colour_viridis
 #' @keywords internal
 
 plot_multinom_exp <- function(model, int_var, pred_data, m_data, palette, coltype) {
-    # Get predictions for each class dep on int_var
-    preds <- pred_data[, !colnames(pred_data) %in% c("id", "prediction")] %>%
-      preds(model, newdata = .) %>%
-      mult_trans(., model) %>%
-      inset("id", value = row.names(.))
-    classes <- as.character(unique(m_data[, 1]))
-    preds <- preds %>%
-      merge(y = pred_data, by.x = "id") %>%
-      extract(, c(int_var, classes, "prediction")) %>%
-      set_colnames(c(int_var, paste0("c.", classes), "prediction")) %>%
-      reshape(., direction = "long",
-              varying = seq_len(length(classes)) + 1,
-              idvar = c(int_var, "prediction")) %>% # because classes start with second column
-      set_colnames(c(int_var, "prediction", "class", "value")) %>%
-      set_rownames(seq_len(nrow(.)))
 
-    # Numerical influence plot
-    if (coltype == "num") {
-      ground <- ggplot(preds, aes_string(x = int_var, y = "value", fill = "class")) +
-        geom_area() +
-        facet_wrap(~prediction) +
-        labs(y = "Expected value of class") +
-        ggtitle(paste("Influence of", int_var,
-                      "on expected values of every class' pi_i")) +
-        theme_bw()
-    }
-    # Categorical influence plot
-    if (coltype == "cat") {
-      ground <- ggplot(preds, aes_string(x = int_var, y = "value", fill = "class")) +
-        geom_bar(stat = "identity", position = position_dodge()) +
-        facet_wrap(~prediction) +
-        labs(y = "Expected value of class") +
-        ggtitle(paste("Influence of", int_var,
-                      "on expected values of every class' pi_i")) +
-        theme_bw()
-    }
+  # Special case of multinomial requires m_data attached with dependent variable
+  m_data <- model.frame(model)
 
-    # Palettes
-    if (palette == "viridis") {
-      ground <- ground +
-        scale_fill_viridis(discrete = TRUE) +
-        scale_colour_viridis(discrete = TRUE)
-    } else if (palette != "default") {
-      ground <- ground +
-        scale_fill_brewer(palette = palette) +
-        scale_colour_brewer(palette = palette)
-    }
-    return(ground)
+  # Get predictions for each class dep on int_var
+  preds <- pred_data[, !colnames(pred_data) %in% c("id", "prediction")] %>%
+    preds(model, newdata = .) %>%
+    mult_trans(., model) %>%
+    inset("id", value = row.names(.))
+  classes <- as.character(unique(m_data[, 1]))
+  preds <- preds %>%
+    merge(y = pred_data, by.x = "id") %>%
+    extract(, c(int_var, classes, "prediction")) %>%
+    set_colnames(c(int_var, paste0("c.", classes), "prediction")) %>%
+    reshape(., direction = "long",
+            varying = seq_len(length(classes)) + 1,
+            idvar = c(int_var, "prediction")) %>% # because classes start with second column
+    set_colnames(c(int_var, "prediction", "class", "value")) %>%
+    set_rownames(seq_len(nrow(.)))
+  preds$class <- factor(preds$class, levels = levels(m_data[, 1]))
+
+  # Numerical influence plot
+  if (coltype == "num") {
+    ground <- ggplot(preds, aes_string(x = int_var, y = "value", fill = "class")) +
+      geom_area() +
+      facet_wrap(~prediction) +
+      labs(y = "Expected value of class") +
+      ggtitle(paste("Influence of", int_var,
+                    "on expected values of every class' pi_i")) +
+      theme_bw()
+  }
+  # Categorical influence plot
+  if (coltype == "cat") {
+    ground <- ggplot(preds, aes_string(x = int_var, y = "value", fill = "class")) +
+      geom_bar(stat = "identity", position = position_dodge()) +
+      facet_wrap(~prediction) +
+      labs(y = "Expected value of class") +
+      ggtitle(paste("Influence of", int_var,
+                    "on expected values of every class' pi_i")) +
+      theme_bw()
+  }
+
+  # Palettes
+  if (palette == "viridis") {
+    ground <- ground +
+      scale_fill_viridis_d() +
+      scale_colour_viridis_d()
+  } else if (palette != "default") {
+    ground <- ground +
+      scale_fill_brewer(palette = palette) +
+      scale_colour_brewer(palette = palette)
+  }
+  return(ground)
 }
 
 #' Internal: Reshape into Long Format
