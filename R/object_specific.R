@@ -9,6 +9,7 @@
 #' @param dep If TRUE, then only the dependent variable is returned.
 #' @param varname Variable name in character form that should be returned. If
 #'   this is specified, only the desired variable is returned.
+#' @param incl_dep Should the dependent variable be included?
 #' @return A data.frame object if dep or varname is not specified, otherwise a
 #'   vector.
 #' @examples
@@ -23,17 +24,27 @@
 #' # Get data
 #' model_data(betamod)
 #' @export
-model_data <- function(model, dep = FALSE, varname = NULL) {
+model_data <- function(model, dep = FALSE, varname = NULL, incl_dep = FALSE) {
 
   # Check first if supported distributional regression model
   if (!distreg_checker(model))
-    stop("Specified model is not a supported distributional regression object. \nSee ?distreg_checker for details")
+    stop("Specified model is not a supported distributional regression object.
+See ?distreg_checker for details")
 
   if (dep & !is.null(varname))
     stop("Combination dep = TRUE and a specified varname is not possible.")
 
   # GAMLSS
   if (is(model, "gamlss")) {
+
+    # Check all formulas for function evaluations inside model formula and stop if yes - this is due to weird behaviour of gamlss
+    form_evals <- sapply(model[grepl("formula", names(model))], FUN = function(x) {
+      return(any(grepl("factor\\(|log\\(", as.character(x))))
+    })
+    if (any(form_evals))
+      stop("Please don't use any function evaluations like log() or
+factor() inside the model formula. It messes with lots of
+things in gamlss and distreg.vis.")
 
     # Put all together
     data_model <- model.frame(model)
@@ -43,7 +54,7 @@ model_data <- function(model, dep = FALSE, varname = NULL) {
     dep_name <- as.character(model$mu.formula)[2] # this works, because in gamlss we do not have multivariate responses
     colnames(all_data)[1] <- dep_name
 
-    # Here we check wether we have splines or identical columns
+    # Here we check whether we have splines or identical columns
     all_data <- gamlss_data_cleaner(all_data)
 
     # Make data.frame out of this
@@ -58,9 +69,14 @@ model_data <- function(model, dep = FALSE, varname = NULL) {
       return_object <- return_object[[varname]]
 
     # If no varname but no dep then don't return with dep
-    if (!dep & is.null(varname))
-      return_object <- return_object[, !colnames(return_object) %in% dep_name]
-
+    if (!dep & is.null(varname)) {
+      if (!incl_dep) {
+        return_object <- return_object[, !colnames(return_object) %in% dep_name]
+      }
+      if (incl_dep) {
+        return_object <- return_object[, ] # return everything
+      }
+    }
   }
 
   # BAMLSS
@@ -76,8 +92,14 @@ model_data <- function(model, dep = FALSE, varname = NULL) {
       return_object <- return_object[[varname]]
 
     # If dep is true but varname not specified then return without dep
-    if (!dep & is.null(varname))
-      return_object <- return_object[, -1]
+    if (!dep & is.null(varname)) {
+      if (!incl_dep) {
+        return_object <- return_object[, -1]
+      }
+      if (incl_dep) {
+        return_object <- return_object[, ] # don't do anything if dep should be included
+      }
+    }
 
   }
 
@@ -92,8 +114,15 @@ model_data <- function(model, dep = FALSE, varname = NULL) {
     if (!dep) {
       if (!is.null(varname))
         return_object <- return_object[[varname]]
-      else if (is.null(varname))
-        return_object <- return_object[, c(-1)]
+      else if (is.null(varname)) {
+        if (!incl_dep) {
+          return_object <- return_object[, c(-1)]
+        }
+        if (incl_dep) {
+          return_object <- return_object[, ]
+        }
+
+      }
     }
   }
   return(return_object)
