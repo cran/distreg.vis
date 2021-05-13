@@ -46,8 +46,9 @@ See ?distreg_checker for details")
 factor() inside the model formula. It messes with lots of
 things in gamlss and distreg.vis.")
 
-    # Put all together
-    data_model <- model.frame(model)
+    # This gets unique variables from all parameters
+    data_model <- lapply(model$parameters, FUN = model.frame, formula = model)
+    data_model <- do.call("cbind", args = data_model)
 
     # Put dep variable in
     all_data <- cbind(model$y, data_model)
@@ -56,6 +57,12 @@ things in gamlss and distreg.vis.")
 
     # Here we check whether we have splines or identical columns
     all_data <- gamlss_data_cleaner(all_data)
+
+    # Here we replace the variables we have with ones from the OG data.frame
+    # this is really really annoying but necessary because gamlss doesn't store
+    # data well when they are included as some kind of splines.
+    og_df <- get(as.character(model$call$data), envir = environment(model$mu.terms))
+    all_data <- og_df[, colnames(all_data)]
 
     # Make data.frame out of this
     return_object <- as.data.frame(all_data)
@@ -128,27 +135,6 @@ things in gamlss and distreg.vis.")
   return(return_object)
 }
 
-#' Internal: Function to obtain all explanatory variables used to fit
-#'   a model, without the dependent variables
-#' @importFrom methods is
-#' @keywords internal
-expl_vars <- function(model) {
-  all_data <- model_data(model)
-
-  # GAMLSS
-  if (is(model, "gamlss")) {
-    dep_name <- as.character(model$mu.formula)[2]
-    expl_vars <- all_data[, !colnames(all_data) %in% dep_name, drop = FALSE]
-  }
-
-  # BAMLSS
-  if (is(model, "bamlss")) {
-    dep_name <- colnames(model$y)
-    expl_vars <- all_data[, !colnames(all_data) %in% dep_name, drop = FALSE]
-  }
-  return(expl_vars)
-}
-
 #' GAMLSS expl_data cleaner
 #'
 #' This checks whether we have spline column names and/or duplicate columns
@@ -170,7 +156,7 @@ gamlss_data_cleaner <- function(temp_df) {
   colnames(new_df) <- new_cnames
 
   # Only retain unique columns
-  new_df <- new_df[, unique(new_cnames)]
+  new_df <- new_df[, !duplicated(new_cnames)]
 
   # Return it
   return(new_df)
