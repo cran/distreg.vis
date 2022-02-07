@@ -1,4 +1,4 @@
-7c4198e01fcbe733d413094b5c797607 *DESCRIPTION
+2fd5434c7ec3f1c456dd95249ee6b0c3 *DESCRIPTION
 91f0dcd5f923128cc9259e9e6fd37444 *NAMESPACE
 c51ddbe93ce1075654b37e9cf1a825c9 *R/app_display_related.R
 ad9dc22a485a815b57ab11b6e3ce4c56 *R/datasets.R
@@ -18,10 +18,10 @@ de68e35693c986ea60bc0fee57783ed3 *R/plot_moments.R
 55252ccd2d4fce3d70479e685374fb49 *R/set_mean.R
 a31f721daebb8944887a9ce983ce083b *R/vis.R
 0e3b988ead7d9e562d7cb320d6eaaff1 *R/warning_if_bad_combs.R
-e5cf3182c778d08dff2f9be0c984baf7 *data/dists.rda
+2ea4a9cb9726b0f6f70dc09a9ebebf9d *data/dists.rda
 97412dde86c41fc0f01fecfcb57d82c2 *demo/00Index
 7c67d6bb43643981141f89d7bceb1c9a *demo/vis-demo.R
-07ab9d9f988f1b919e66f8def9586a4e *inst/extdata/dist_df.csv
+6df9a1f8e15c766cba808f7ab4fca10b *inst/extdata/dist_df.csv
 a94697d587fe53eba7bb137b62b8ebda *inst/rstudio/addins.dcf
 d2d28bd1dbe206c4a8234a3e84142ec9 *inst/srcjs/highlight.pack.js
 0916298c75d6c9a81514ca7d233768f1 *inst/srcjs/iframeResizer.contentWindow.min.js
@@ -71,5 +71,5 @@ f27dee10666a9b6eb7163e6aaf7921fd *man/set_mean.Rd
 44f0af01ebf047ffd881f0296dcd001e *man/type_getter.Rd
 507d1bc9f5a032acf0f3ef8d7b800bde *man/vis.Rd
 fd235ee8a2ebdbf847104b1d9d708bfe *tests/testthat.R
-895605464f9415a820a4b476233930bd *tests/testthat/test_01_all_dists.R
-d62125facbbc751af16fe320173aa2cb *tests/testthat/test_02_misc.R
+57ffe93819cd947768e7d5f4f54572e3 *tests/testthat/test_01_all_dists.R
+f8a89629ba049f779ba91172520b4cec *tests/testthat/test_02_misc.R
