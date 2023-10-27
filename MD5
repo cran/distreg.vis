@@ -1,4 +1,4 @@
-9a921fc5a3beb074fd19d3e896f711b4 *DESCRIPTION
+f9b286ea87a494f873d42d1394d295bb *DESCRIPTION
 91f0dcd5f923128cc9259e9e6fd37444 *NAMESPACE
 c51ddbe93ce1075654b37e9cf1a825c9 *R/app_display_related.R
 ad9dc22a485a815b57ab11b6e3ce4c56 *R/datasets.R
@@ -11,7 +11,7 @@ b654ab1f9fbf841315817501468e6b9a *R/distreg.vis.R
 6af0d2bbe02df41377af7bfde6a4dbd7 *R/mult_trans.R
 7bdbab09bedef886e5ec753197c28818 *R/object_specific.R
 89de3325fce74c9910a23b1b002ff17b *R/plot_dist.R
-6a2f1812b26747837c3e7d110ecace32 *R/plot_moments.R
+2f5d4c96a964e425c89cb9f57ee18d50 *R/plot_moments.R
 5dbec0b54e26ccd5eec42b3bb5a6659c *R/plot_related_helper.R
 891ce3be479c88aded0251bf7d9ffc52 *R/preds.R
 355f13e97db779fe44a90e2d0a977c55 *R/quantile_limits.R
@@ -63,7 +63,7 @@ c4d48fe324d2cff7d7dbb42d010293fd *man/preds.Rd
 f61018133fbb91c2fd0bd717ce25cf27 *man/preds_transformer.Rd
 4132aaef7e0c28c7ffa61f1ed992849c *man/quants.Rd
 fe722b5cf8e0844f99a39b0e46634b79 *man/range_checker.Rd
-01c2c1707ef8ff5da691c8c4106a6950 *man/reshape_into_long.Rd
+b9bdcfaf54006b16c24d4a5bff3d8b7b *man/reshape_into_long.Rd
 7ff6998c593d3b50d8fa8b898ba8ba24 *man/search_distreg.Rd
 94a5cefb5668370859594120e3f3080a *man/search_funs.Rd
 f27dee10666a9b6eb7163e6aaf7921fd *man/set_mean.Rd
